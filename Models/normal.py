@@ -17,15 +17,22 @@ class MCTS_NORMAL(Model):
         else:
             explore_node = promising_node
         evaluation = self.simulate(explore_node)
-        # print(f"Evaluation result is {evaluation}")
+        if evaluation == Result.PLAYER2_WIN:
+            self.root.player_2_wins += 1
+        elif evaluation == Result.PLAYER1_WIN:
+            self.root.player_1_wins += 1
+
 
         # BACK PROPAGATION
         self.back_propagate(explore_node, evaluation)
 
     def select_best_child(self) -> Node:
-        if not self.root.children:
-            return self.root
-        return self.root.get_child_with_highest_score()
+        best_child = self.root
+
+        while best_child.children:
+            best_child = best_child.get_child_with_highest_score()
+
+        return best_child
 
     def simulate(self, node: Node) -> Result:
         """Simulate with random move selection policy"""
@@ -44,6 +51,7 @@ class MCTS_NORMAL(Model):
             move = random.choice(legal_moves)
             # move = random.choice(simulate_state.get_legal_moves(player_turn))
             simulate_state.simulate_move(move)
+            # simulate_state.print_position()
             player_turn = Player(-player_turn)
 
         # simulate_state.print_position()
@@ -52,11 +60,14 @@ class MCTS_NORMAL(Model):
 
     def back_propagate(self, node, evaluation) -> Result:
         current_node = node
+
         while current_node != None:
-            if current_node.player_turn == evaluation:
-                current_node.value -= 1
-            elif current_node.player_turn == -evaluation:
+            if current_node.player_turn == -evaluation:
+                # The player who moved into this turn won
                 current_node.value += 1
+            elif current_node.player_turn == evaluation:
+                # The player who moved into this turn lost
+                current_node.value -= 1
             
             current_node.visits += 1
             current_node = current_node.parent

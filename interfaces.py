@@ -54,14 +54,12 @@ class IterationResource(Resource):
         self.cur += 1
         return self.cur <= self.limit_iter
 
-
-
 class State(ABC):
     def __init__(self, position):
         self.position = position
 
     @abstractmethod
-    def evaluate_state(self) -> Result:
+    def evaluate_state(self, last_move=None) -> Result:
         """Evaluates and returns the state of the game"""
         pass
 
@@ -99,6 +97,8 @@ class Node:
         self.visits = 0
         self.last_move = last_move
         self.player_turn = player_turn
+        self.player_1_wins = 0
+        self.player_2_wins = 0
 
     def get_random_child(self):
         return random.choice(self.children)
@@ -115,13 +115,16 @@ class Node:
 
     def get_child_with_highest_score(self):
         """Returns the child with the highest node score"""
-        return max(self.children, key=lambda c : c.get_node_score())
+        return max(self.children, key=lambda c : c.get_node_score(MAX_INT))
 
+    def get_child_with_most_visits(self):
+        """Returns the child with the most visits"""
+        return max(self.children, key=lambda c : c.visits)
 
-    def get_node_score(self):
+    def get_node_score(self, default=MAX_INT):
         """Returns the score of this node"""
         if self.visits == 0:
-            return MAX_INT
+            return default
         else:
             return (self.value/self.visits + 1.41 * math.sqrt(math.log(self.parent.visits)/self.visits))
 
@@ -136,18 +139,6 @@ class Node:
             child_node = Node(self.state.make_move(opponent_move), Player(-self.player_turn), self, opponent_move)
 
         return child_node
-    
-    def back_propagate(self, node, evaluation):
-        """Back propagates the result all the way to the parent node"""
-        current_node = node
-        while current_node is not None:
-            if current_node.player_turn == evaluation:
-                current_node.value -= 1 # TODO: Check
-            elif current_node.player_turn == -evaluation:
-                current_node.value += 1
-            
-            current_node.visits += 1
-            current_node = current_node.parent
 
 
 class Model(ABC):
@@ -166,13 +157,36 @@ class Model(ABC):
         while resource.use_resource():
             self.execute_strategy()
 
-        # Selects the child with the highest node score
-        best_node = self.root.get_child_with_highest_score()
+        # Selects the child with the most visits
+        best_node = self.root.get_child_with_most_visits()
+        # if self.player is Player.PLAYER1:
+        #     best_node = self.root.get_child_with_highest_score()
+        # elif self.player is Player.PLAYER2:
+        #     best_node = self.root.get_child_with_lowest_score()
+
+
+        print(f"new root vists is {best_node.visits} and value is {best_node.value} with score {best_node.get_node_score()}")
+        scores = []
+        for child in self.root.children:
+            scores.append(child.get_node_score())
+        print(scores)
+
+        print(f"Player 1 wins is {self.root.player_1_wins}")        
+        print(f"Player 2 wins is {self.root.player_2_wins}")        
+
         self.root = best_node
         self.root.parent = None
-        print(f"new root vists is {best_node.visits} and value is {best_node.value}")
 
+        # print("Looking at children...")
+        # for child in self.root.children:
+        #     print("============================")
+        #     print(f"Visits {child.visits} Value {child.value}")
+        #     child.state.print_position()
+        #     print("============================")
+
+        print("Finished looking at children...")
         return best_node.last_move
+
 
     def notify_of_opponent_move(self, opponent_move) -> None:
         """The opponent has made a move. We will advance the model accordingly"""
@@ -232,9 +246,10 @@ class GameManager():
             self.state.simulate_move(move)
 
             self.cur_player, self.opp_player = self.opp_player, self.cur_player
-            print("========================")
+            print("=========================")
             self.state.print_position()
-            print("========================")
-            # input()
+            print("=========================")
+
+
 
         return self.state.evaluate_state(move)

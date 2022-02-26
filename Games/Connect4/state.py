@@ -35,6 +35,7 @@ class Connect4_State(State):
         row = last_move[1]
         col = last_move[2]
 
+        # Check all the wins in a row
         win_counter = 0
         for c in self.position[row]:
             if c == player:
@@ -44,6 +45,9 @@ class Connect4_State(State):
             else:
                 win_counter = 0
         
+
+
+        # Check all the wins in the col
         win_counter = 0
         for r in self.position:
             if r[col] == player:
@@ -53,35 +57,61 @@ class Connect4_State(State):
             else:
                 win_counter = 0
 
-        win_counter = 0
+
+
         # Check topleft - bottomright diagonal
-        offset = min(row, col)
-        i = row - offset
-        j = col - offset
+        pieces = [self.position[row][col]]
+        i = row + 1
+        j = col + 1
         while i < 6 and j < 7:
-            if self.position[i][j] == player:
-                win_counter += 1
-                if win_counter == 4:
-                    return Result(player)
-            else:
-                win_counter = 0
+            pieces.append(self.position[i][j])
             i += 1
             j += 1
         
+        i = row - 1
+        j = col - 1
+        while i >= 0 and j >= 0:
+            pieces.append(self.position[i][j])
+            i -= 1
+            j -= 1
+
         win_counter = 0
-        # Check bottomleft - topright diagonal
-        offset = min(5 - row, col)
-        i = row + offset
-        j = col - offset
-        while i < 6 and j < 7:
-            if self.position[i][j] == player:
+        for piece in pieces:
+            if piece == player:
                 win_counter += 1
                 if win_counter == 4:
                     return Result(player)
             else:
                 win_counter = 0
+
+
+
+        # Check bottom left - top right diagonal
+        pieces = [self.position[row][col]]
+        i = row - 1
+        j = col + 1
+        while i >= 0 and j < 7:
+            pieces.append(self.position[i][j])
             i -= 1
             j += 1
+
+        i = row + 1
+        j = col - 1     
+        while i < 6 and j >= 0:
+            pieces.insert(0, self.position[i][j])
+            i += 1
+            j -= 1
+
+        win_counter = 0
+        for piece in pieces:
+            if piece == player:
+                win_counter += 1
+                if win_counter == 4:
+                    return Result(player)
+            else:
+                win_counter = 0
+
+
 
         # Game is still ongoing or a draw
         if row == 0:
