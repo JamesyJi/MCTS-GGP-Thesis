@@ -13,14 +13,14 @@ MAX_INT = float('inf')
 MIN_INT = float('-inf')
 
 class Player(IntEnum):
-    PLAYER1 = 1
-    PLAYER2 = -1
+    PLAYER1 = 3
+    PLAYER2 = -3
 
 class Result(IntEnum):
     PLAYER1_WIN = Player.PLAYER1
     PLAYER2_WIN = Player.PLAYER2
-    DRAW = 2
-    ONGOING = 3
+    DRAW = 0
+    ONGOING = 1
 
 class Resource(ABC):
     @abstractmethod
@@ -97,8 +97,6 @@ class Node:
         self.visits = 0
         self.last_move = last_move
         self.player_turn = player_turn
-        self.player_1_wins = 0
-        self.player_2_wins = 0
 
     def get_random_child(self):
         return random.choice(self.children)
@@ -158,21 +156,22 @@ class Model(ABC):
             self.execute_strategy()
 
         # Selects the child with the most visits
-        best_node = self.root.get_child_with_most_visits()
+        # best_node = self.root.get_child_with_most_visits()
         # if self.player is Player.PLAYER1:
-        #     best_node = self.root.get_child_with_highest_score()
+        best_node = self.root.get_child_with_highest_score()
         # elif self.player is Player.PLAYER2:
         #     best_node = self.root.get_child_with_lowest_score()
 
 
         print(f"new root vists is {best_node.visits} and value is {best_node.value} with score {best_node.get_node_score()}")
         scores = []
+        moves = []
         for child in self.root.children:
+            # scores.append(child.get_node_score())
             scores.append(child.get_node_score())
+            moves.append(child.last_move)
         print(scores)
-
-        print(f"Player 1 wins is {self.root.player_1_wins}")        
-        print(f"Player 2 wins is {self.root.player_2_wins}")        
+        print(moves)
 
         self.root = best_node
         self.root.parent = None
@@ -217,6 +216,38 @@ class Model(ABC):
     def back_propagate(self, node, evaluation) -> Result:
         """Backpropagates the simulation result"""
         pass
+    
+    def back_propagate_proven(self, node, evaluation) -> Result:
+        """Backpropagates proven results"""
+        if evaluation == Result.ONGOING or Result.DRAW:
+            return
+
+        if evaluation == node.player_turn:
+            # The player who moved into this turn lost
+            node.value = MIN_INT
+
+            node = node.parent
+        elif evaluation == -node.player_turn:
+            # The player who moved into this turn won
+            node.value = MAX_INT
+            node.parent.value = MIN_INT
+
+            node = node.parent.parent
+
+        # Try to back propagate everything up the tree
+        while node != None:
+            # All children must be min_int in order for the node to be a win
+            for child in node.children:
+                if child.value != MIN_INT:
+                    return
+            node.value = MAX_INT
+
+            if node.parent:
+                # If this is a win, then the prior move must be a loss
+                node = node.parent
+                node.value = MIN_INT
+
+            node = node.parent
 
 
 

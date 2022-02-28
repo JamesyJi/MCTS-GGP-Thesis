@@ -47,30 +47,55 @@ class MCTS_MS_VISIT(Model):
         """Will run a minimax when we reach a child which meets the visit threshold"""
         best_child = self.root
 
+        # scores = []
+        # values = []
+        # visits = []
+        # moves = []
+        # if self.root.player_turn == Player.PLAYER2:
+        #     print("position")
+        #     self.root.state.print_position()
+        #     for child in self.root.children:
+        #         # scores.append(child.get_node_score())
+        #         scores.append(child.get_node_score())
+        #         values.append(child.value)
+        #         visits.append(child.visits)
+        #         moves.append(child.last_move)
+        #     print(scores)
+        #     print(values)
+        #     print(visits)
+        #     print(moves)
+        #     input()
+
+        # print("Selection")
         while best_child.children:
-            if best_child.visits == MIN_INT or best_child.visits == MAX_INT:
-                # No need to continue with children when we have a guaranteed result already
-                break
+            # print("child")
+            best_child = best_child.get_child_with_highest_score()
 
             if best_child.visits == N_VISITS:
                 # print(f"running minimax...")
                 # best_child.state.print_position()
-                evaluation = self.minimax(best_child.state, best_child.last_move, DEPTH, MIN_INT, MAX_INT, best_child.player_turn)
-                if evaluation == best_child.player_turn:
-                    # The player who moved into this turn lost.
-                    # print(f"Found a forced win for {best_child.player_turn}")
-                    # best_child.state.print_position()
-                    # input()
-                    best_child.value = MIN_INT
-                elif evaluation == -best_child.player_turn:
-                    # The player who moved into this turn won
-                    # print(f"Found a forced win for {-best_child.player_turn}")
-                    # best_child.state.print_position()
-                    # input()
-                    best_child.value = MAX_INT
-                    best_child.parent.value = MIN_INT
 
-            best_child = best_child.get_child_with_highest_score()
+                evaluation = self.minimax(best_child.state, best_child.last_move, DEPTH, MIN_INT, MAX_INT, best_child.player_turn)
+                
+                self.back_propagate_proven(best_child, evaluation)
+
+                # if evaluation == Result.PLAYER1_WIN or evaluation == Result.PLAYER2_WIN:
+                #     break
+                # if evaluation == best_child.player_turn:
+                #     # The player who moved into this turn lost.
+                #     # print(f"Found a forced win for {best_child.player_turn}")
+                #     # best_child.state.print_position()
+                #     # input()
+                #     best_child.value = MIN_INT
+                #     break
+                # elif evaluation == -best_child.player_turn:
+                #     # The player who moved into this turn won
+                #     # print(f"Found a forced win for {-best_child.player_turn}")
+                #     # best_child.state.print_position()
+                #     # input()
+                #     best_child.value = MAX_INT
+                #     best_child.parent.value = MIN_INT
+                #     break
 
         return best_child
 
@@ -113,23 +138,16 @@ class MCTS_MS_VISIT(Model):
         """Returns result from minimax"""
         if depth == 0 or state.evaluate_state(last_move) != Result.ONGOING:
             evaluation = state.evaluate_state(last_move)
-            # print(f"Reached end. Evaluation is {evaluation} for player {player}")
-            # state.print_position()
+
             return evaluation
-            # return state.evaluate_state()
         
         if player == Player.PLAYER1:
-            max_evaluation = Result.PLAYER2_WIN
+            max_evaluation = MIN_INT
             for move in state.get_legal_moves(player):
                 new_state = copy.deepcopy(state)
                 new_state.simulate_move(move)
                 evaluation = self.minimax(new_state, move, depth - 1, alpha, beta, Player.PLAYER2)
-
-                if evaluation == Result.PLAYER1_WIN:
-                    max_evaluation = Result.PLAYER1_WIN
-                elif evaluation == Result.DRAW and max_evaluation == Result.PLAYER2_WIN:
-                    max_evaluation = Result.DRAW
-
+                max_evaluation = max(max_evaluation, evaluation)
                 alpha = max(alpha, max_evaluation)
                 if beta <= alpha:
                     break
@@ -137,17 +155,12 @@ class MCTS_MS_VISIT(Model):
             # state.print_position()
             return max_evaluation
         else:
-            min_evaluation = Result.PLAYER1_WIN
+            min_evaluation = MAX_INT
             for move in state.get_legal_moves(player):
                 new_state = copy.deepcopy(state)
                 new_state.simulate_move(move)
                 evaluation = self.minimax(new_state, move, depth - 1, alpha, beta, Player.PLAYER1)
-
-                if evaluation == Result.PLAYER2_WIN:
-                    min_evaluation = Result.PLAYER2_WIN
-                elif evaluation == Result.DRAW and max_evaluation == Result.PLAYER1_WIN:
-                    min_evaluation = Result.DRAW
-                
+                min_evaluation = min(min_evaluation, evaluation)
                 beta = min(beta, min_evaluation)
                 if beta <= alpha:
                     break

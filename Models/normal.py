@@ -17,11 +17,6 @@ class MCTS_NORMAL(Model):
         else:
             explore_node = promising_node
         evaluation = self.simulate(explore_node)
-        if evaluation == Result.PLAYER2_WIN:
-            self.root.player_2_wins += 1
-        elif evaluation == Result.PLAYER1_WIN:
-            self.root.player_1_wins += 1
-
 
         # BACK PROPAGATION
         self.back_propagate(explore_node, evaluation)

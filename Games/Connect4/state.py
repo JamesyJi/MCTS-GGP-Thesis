@@ -71,7 +71,7 @@ class Connect4_State(State):
         i = row - 1
         j = col - 1
         while i >= 0 and j >= 0:
-            pieces.append(self.position[i][j])
+            pieces.insert(0, self.position[i][j])
             i -= 1
             j -= 1
 
