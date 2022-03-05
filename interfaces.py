@@ -12,6 +12,11 @@ import random
 MAX_INT = float('inf')
 MIN_INT = float('-inf')
 
+TURN_NUMBER = 1
+
+# Maps turn # to true/false for if a trap was found that turn
+trap_stats = {}
+
 class Player(IntEnum):
     PLAYER1 = 3
     PLAYER2 = -3
@@ -107,7 +112,7 @@ class Node:
     def expand_node(self):
         """Expands the node, adding all the legal possible nodes as children"""
         legal_moves = self.state.get_legal_moves(self.player_turn)
-
+        
         for move in legal_moves:
             self.children.append(Node(self.state.make_move(move), Player(-self.player_turn), self, move))
 
@@ -151,7 +156,9 @@ class Model(ABC):
     def decide_move(self, resource) -> State:
         """Keeps simulating until resource limit is hit and then returns the best
         state to move into"""
-        print(f"{self.player} is deciding move...")
+        global TURN_NUMBER
+        print(f"{self.player} is deciding move... turn is {TURN_NUMBER}")
+
         while resource.use_resource():
             self.execute_strategy()
 
@@ -162,20 +169,21 @@ class Model(ABC):
         # elif self.player is Player.PLAYER2:
         #     best_node = self.root.get_child_with_lowest_score()
 
-
-        print(f"new root vists is {best_node.visits} and value is {best_node.value} with score {best_node.get_node_score()}")
-        scores = []
-        moves = []
-        for child in self.root.children:
-            # scores.append(child.get_node_score())
-            scores.append(child.get_node_score())
-            moves.append(child.last_move)
-        print(scores)
-        print(moves)
+        # print(f"new root vists is {best_node.visits} and value is {best_node.value} with score {best_node.get_node_score()}")
+        # scores = []
+        # moves = []
+        # for child in self.root.children:
+        #     # scores.append(child.get_node_score())
+        #     scores.append(child.get_node_score())
+        #     moves.append(child.last_move)
+        # print(scores)
+        # print(moves)
 
         self.root = best_node
         self.root.parent = None
-
+        # print("!!!!!!!!!!!!!!!!!!!!!!")
+        # self.root.state.print_position()
+        # print("!!!!!!!!!!!!!!!!!!!!!!!!")
         # print("Looking at children...")
         # for child in self.root.children:
         #     print("============================")
@@ -183,7 +191,8 @@ class Model(ABC):
         #     child.state.print_position()
         #     print("============================")
 
-        print("Finished looking at children...")
+        # print("Finished looking at children...")
+        TURN_NUMBER += 1
         return best_node.last_move
 
 
@@ -192,7 +201,9 @@ class Model(ABC):
         # print(f"{self.player} is getting child")
         # print(f"{self.player} Notified of opponent move {opponent_move}")
 
+        print("Opponent made move")
         self.root = self.root.get_child(opponent_move)
+
         self.root.parent = None
         
         # self.root.state.print_position()
@@ -272,7 +283,8 @@ class GameManager():
             resource.reset_start()
             move = self.cur_player.decide_move(resource)
 
-            self.opp_player.notify_of_opponent_move(move)
+            if not (self.player1 is self.player2):
+                self.opp_player.notify_of_opponent_move(move)
 
             self.state.simulate_move(move)
 
@@ -281,6 +293,5 @@ class GameManager():
             self.state.print_position()
             print("=========================")
 
-
-
+        print(trap_stats)
         return self.state.evaluate_state(move)

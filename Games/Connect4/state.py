@@ -146,7 +146,6 @@ class Connect4_State(State):
         return new_state
     
     def simulate_move(self, move) -> None:
-        # print(f"Simulating move {move}")
         self.position[move[1]][move[2]] = move[0]
 
     def get_start_position():
