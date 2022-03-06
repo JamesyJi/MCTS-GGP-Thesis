@@ -8,7 +8,7 @@ class MCTS_NORMAL(Model):
         promising_node = self.select_best_child()
 
         # EXPANSION
-        if promising_node.state.evaluate_state() == Result.ONGOING:
+        if promising_node.state.evaluate_state(promising_node.last_move) == Result.ONGOING:
             promising_node.expand_node()
     
         # SIMULATION

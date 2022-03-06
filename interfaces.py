@@ -9,6 +9,7 @@ from typing import List
 from operator import attrgetter
 import random
 import json
+from xmlrpc.client import Boolean
 
 MAX_INT = float('inf')
 MIN_INT = float('-inf')
@@ -99,6 +100,14 @@ class State(ABC):
         "Prints the current position of the state"
         pass
 
+    def equals(self, other_state) -> bool:
+        """Determines if 2 states are equal (very slow comparison)"""
+        for i in range(len(self.position)):
+            for j in range(len(self.position[0])):
+                if self.position[i][j] != other_state.position[i][j]:
+                    return False
+        return True
+
 class Node:
     def __init__(self, state: State, player_turn: Player, parent=None, last_move=None):
         self.state = state
@@ -184,12 +193,20 @@ class Model(ABC):
         # print(scores)
         # print(moves)
 
+
+        # print("Looking at children...")
+        # for child in self.root.children:
+        #     print("============================")
+        #     print(f"Visits {child.visits} Value {child.value}")
+        #     child.state.print_position()
+        #     print("============================")
+
         self.root = best_node
         self.root.parent = None
-        # print("!!!!!!!!!!!!!!!!!!!!!!")
+        # print("Root position is now")
         # self.root.state.print_position()
-        # print("!!!!!!!!!!!!!!!!!!!!!!!!")
-        # print("Looking at children...")
+        # print("Root position")
+        # print("Printing child of root...")
         # for child in self.root.children:
         #     print("============================")
         #     print(f"Visits {child.visits} Value {child.value}")

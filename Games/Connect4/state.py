@@ -1,6 +1,4 @@
 import copy
-from enum import Enum
-from queue import Empty
 from interfaces import Player, Result, State
 from colorama import Fore, Style
 
@@ -21,9 +19,6 @@ EMPTY = 0
 
 class Connect4_State(State):        
     def evaluate_state(self, last_move=None) -> Result:
-        """
-        Evaluation is much more efficient if we know the last made move        
-        """
         # print(f"Evaluation of last_move {last_move}")
         # print(self.position)
         # self.print_position()

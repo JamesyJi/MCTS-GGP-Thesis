@@ -18,7 +18,7 @@ class MCTS_MS_VISIT(Model):
         promising_node = self.select_best_child()
 
         # EXPANSION
-        if promising_node.state.evaluate_state() == Result.ONGOING:
+        if promising_node.state.evaluate_state(promising_node.last_move) == Result.ONGOING:
             promising_node.expand_node()
 
         # if promising_node.value == MIN_INT or promising_node.value == MAX_INT:

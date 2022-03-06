@@ -5,17 +5,30 @@ import copy
 from pickle import NONE
 from interfaces import *
 import interfaces
+from Games.Connect4.state import Connect4_State
 
 MAX_INT = float('inf')
 MIN_INT = float('-inf')
 DEPTH = 3
+
+X = Player.PLAYER1
+O = Player.PLAYER2
+
+test_state = Connect4_State([
+    [0, 0, 0, O, X, 0, O],
+    [O, X, 0, X, O, O, X],
+    [X, O, 0, O, O, X, O],
+    [O, X, 0, X, X, O, O],
+    [X, X, X, O, O, O, X],
+    [X, O, X, X, O, X, X],
+])
 
 class MCTS_TRAP_FINDER(Model):
     def execute_strategy(self):
         if interfaces.TURN_NUMBER not in trap_stats:
             trap_stats[interfaces.TURN_NUMBER] = 0
             # Run a minimax to detect traps
-            if self.root.state.evaluate_state() == Result.ONGOING:
+            if self.root.state.evaluate_state(self.root.last_move) == Result.ONGOING:
                 if not self.root.children:
                     self.root.expand_node()
 
@@ -29,15 +42,28 @@ class MCTS_TRAP_FINDER(Model):
         promising_node = self.select_best_child()
 
         # EXPANSION
-        if promising_node.state.evaluate_state() == Result.ONGOING:
-            promising_node.expand_node()
+        if promising_node.state.evaluate_state(promising_node.last_move) == Result.ONGOING:
+                promising_node.expand_node()
 
         # SIMULATION
         if promising_node.children:
             explore_node = promising_node.get_random_child()
         else:
             explore_node = promising_node
+
+        # flag = False
+        # if explore_node.state.position[4][2] == Player.PLAYER2:
+        #     flag = True
+
         evaluation = self.simulate(explore_node)
+
+
+        # if flag == Player.PLAYER2 and evaluation != Result.PLAYER2_WIN:
+        #     print(evaluation)
+        #     explore_node.state.print_position()
+        #     input()
+        # elif flag == Player.PLAYER2 and evaluation == Result.PLAYER2_WIN:
+        #     print("!!!!!!!!!!!")
 
         # BACK PROPAGATION
         self.back_propagate(explore_node, evaluation)
@@ -55,6 +81,9 @@ class MCTS_TRAP_FINDER(Model):
         simulate_state = copy.deepcopy(node.state)
         player_turn = node.player_turn
         move = node.last_move
+
+        # if move[0] == Player.PLAYER2 and move[1] == 4 and move[2] == 2:
+        #     print("Simulating...")
 
         # print("================")
         # print("Simulating...")
@@ -76,7 +105,7 @@ class MCTS_TRAP_FINDER(Model):
 
     def back_propagate(self, node, evaluation) -> Result:
         current_node = node
-
+        
         while current_node != None:
             if current_node.player_turn == -evaluation:
                 # The player who moved into this turn won
@@ -87,6 +116,8 @@ class MCTS_TRAP_FINDER(Model):
             
             current_node.visits += 1
             current_node = current_node.parent
+
+
 
     def minimax(self, state, last_move, depth, alpha, beta, player) -> Result:
         """Returns result from minimax"""
