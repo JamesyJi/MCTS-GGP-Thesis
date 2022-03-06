@@ -8,6 +8,7 @@ import time
 from typing import List
 from operator import attrgetter
 import random
+import json
 
 MAX_INT = float('inf')
 MIN_INT = float('-inf')
@@ -16,6 +17,11 @@ TURN_NUMBER = 1
 
 # Maps turn # to true/false for if a trap was found that turn
 trap_stats = {}
+
+overall_trap_stats = {}
+
+# Tracks number of games which have reached this turn
+turn_stats = {}
 
 class Player(IntEnum):
     PLAYER1 = 3
@@ -143,7 +149,6 @@ class Node:
 
         return child_node
 
-
 class Model(ABC):
     """Abstract model class for maintaining tree and making game decisions"""
     def __init__(self, player: Player) -> None:
@@ -261,37 +266,88 @@ class Model(ABC):
             node = node.parent
 
 
-
 class GameManager():
     def __init__(self, state: State, model1: Model, model2: Model):
-        self.state = state
-
-        model1.initialise(state)
-        model2.initialise(state)
+        self.init_state = copy.deepcopy(state)
 
         self.player1 = model1
         self.player2 = model2
-
-        self.cur_player = self.player1
-        self.opp_player = self.player2
         
-    def start_game(self, resource: Resource) -> Result:
+    def start_game(self, resource: Resource, rounds) -> Result:
         """Starts the game between the 2 players and continues until it has been decided.
-        A result is returned indicating the outcome"""
-        move = None
-        while self.state.evaluate_state(move) is Result.ONGOING:
-            resource.reset_start()
-            move = self.cur_player.decide_move(resource)
+        A result is returned indicating the outcome.
+        Will repeat the game with multiple rounds, switching the players at each stage"""
 
-            if not (self.player1 is self.player2):
-                self.opp_player.notify_of_opponent_move(move)
+        global TURN_NUMBER
+        global trap_stats
+        global overall_trap_stats
 
-            self.state.simulate_move(move)
+        results = []
 
-            self.cur_player, self.opp_player = self.opp_player, self.cur_player
-            print("=========================")
-            self.state.print_position()
-            print("=========================")
+        for i in range(1, rounds + 1):
+            print(f"Starting round {i}")
+            self.initialise_game(i)
 
-        print(trap_stats)
-        return self.state.evaluate_state(move)
+            move = None
+            while self.state.evaluate_state(move) is Result.ONGOING:
+                resource.reset_start()
+                move = self.cur_player.decide_move(resource)
+
+                if not (self.player1 is self.player2):
+                    self.opp_player.notify_of_opponent_move(move)
+
+                self.state.simulate_move(move)
+
+                self.cur_player, self.opp_player = self.opp_player, self.cur_player
+                print("=========================")
+                self.state.print_position()
+                print("=========================")
+
+            results.append(self.state.evaluate_state(move))
+            print("!!!!!!!!!!!!")
+            print(results[-1])
+            print("!!!!!!!!!!!!")
+
+            # Store and reset turn number
+            if TURN_NUMBER - 1 not in turn_stats:
+                turn_stats[TURN_NUMBER - 1] = 1
+            else:
+                turn_stats[TURN_NUMBER - 1] += 1
+            TURN_NUMBER = 1
+
+            # Move the trap stats into overall trap stats and reset trap stats
+            for t, c in trap_stats.items():
+                if t not in overall_trap_stats:
+                    overall_trap_stats[t] = c
+                else:
+                    overall_trap_stats[t] += c
+            
+            trap_stats.clear()
+        
+        self.log_stats()
+
+        return results
+
+    def initialise_game(self, rounds):
+        """Switches the players depending on the round. Player1 goes first in odd
+        rounds and Player2 goes first in even rounds"""
+        if rounds % 2 == 1:
+            self.cur_player, self.opp_player = self.player1, self.player2
+        else:
+            self.cur_player, self.opp_player = self.player2, self.player1
+
+        print("Determining side")
+        self.init_state.print_position()
+        self.state = copy.deepcopy(self.init_state)
+        self.cur_player.initialise(self.init_state)
+        self.opp_player.initialise(self.init_state)
+
+    def log_stats(self):
+        global overall_trap_stats
+        global turn_stats
+
+        with open("trap_stats.json", "w") as f:
+            json.dump(overall_trap_stats, f)
+        
+        with open("turn_stats.json", "w") as f:
+            json.dump(turn_stats, f)

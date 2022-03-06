@@ -16,9 +16,9 @@ if __name__ == "__main__":
     # model2 = model1
 
     # resource = TimeResource(5) # Or iteration resource
-    resource = IterationResource(1000)
+    resource = IterationResource(100000)
 
     game_manager = GameManager(init_state, model1, model1)
 
-    result = game_manager.start_game(resource)
+    result = game_manager.start_game(resource, 50)
     print(result)

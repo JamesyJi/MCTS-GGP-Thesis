@@ -25,7 +25,6 @@ class MCTS_TRAP_FINDER(Model):
                       trap_stats[interfaces.TURN_NUMBER] += 1
                       break
 
-
         # SELECTION
         promising_node = self.select_best_child()
 
